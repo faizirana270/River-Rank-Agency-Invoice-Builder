@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>River Rank Agency | Invoice Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rr-black: #000000;
+            --rr-red: #FE3A3A; 
+            --rr-white: #FFFFFF;
+            --rr-gray-dark: #1A1A1A;
+            --rr-gray-light: #F4F4F5;
+            --rr-text-muted: #A1A1AA;
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            margin: 0; padding: 0;
+            background-color: var(--rr-black);
+            display: flex; height: 100vh;
+            color: var(--rr-white);
+            overflow: hidden;
+        }
+
+        /* --- Control Panel --- */
+        .control-panel {
+            width: 380px; background: var(--rr-black); color: var(--rr-white);
+            padding: 35px 30px; box-shadow: 4px 0 20px rgba(0,0,0,0.8);
+            overflow-y: auto; border-right: 1px solid #333; flex-shrink: 0;
+        }
+        .control-panel h2 { margin-top: 0; font-family: var(--font-serif); font-size: 1.8rem; margin-bottom: 25px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--rr-text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input[type="text"], input[type="date"], input[type="number"], select {
+            width: 100%; padding: 12px; background: var(--rr-gray-dark); border: 1px solid #333; border-radius: 4px; color: var(--rr-white); box-sizing: border-box; font-family: inherit;
+        }
+        
+        .line-items-editor { background: var(--rr-gray-dark); padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 20px; }
+        .item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .item-row input[type="text"] { flex: 2; }
+        .item-row input[type="number"] { flex: 1; text-align: right; }
+        .delete-btn { background: #333; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .delete-btn:hover { background: var(--rr-red); }
+
+        .payment-checkboxes { background: var(--rr-gray-dark); padding: 15px; border-radius: 6px; border: 1px solid #333; }
+        .checkbox-item { display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; font-size: 0.85rem; }
+        .checkbox-item input { margin-right: 10px; width: auto; cursor: pointer; }
+        
+        .btn-outline { width: 100%; padding: 10px; background: transparent; color: var(--rr-white); border: 1px dashed #555; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+        button.print-btn { width: 100%; padding: 16px; background-color: var(--rr-red); color: var(--rr-white); border: none; border-radius: 6px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 15px; }
+
+        /* --- THE INVOICE SHEET --- */
+        .preview-container { flex: 1; padding: 40px; display: flex; justify-content: center; overflow-y: auto; background-color: #111; }
+        
+        .invoice-sheet {
+            background: var(--rr-white); 
+            width: 100%; 
+            max-width: 850px; 
+            min-height: 1100px; 
+            height: fit-content; 
+            color: var(--rr-black); 
+            box-sizing: border-box;
+            border-top: 15px solid var(--rr-red); 
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0; 
+        }
+
+        [contenteditable="true"]:focus { outline: 1px dashed var(--rr-red); background: #fffcfc; }
+
+        .sheet-body { padding: 50px 70px 30px 70px; flex-grow: 1; }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+        .agency-logo h1 { margin: 0; font-family: var(--font-serif); font-size: 2.8rem; font-weight: 900; color: var(--rr-black); }
+        .agency-details p { margin: 4px 0; color: #555; font-size: 0.95rem; }
+        
+        .invoice-title { text-align: right; }
+        .invoice-title h2 { margin: 0; font-family: var(--font-serif); font-size: 3rem; line-height: 1; }
+        .invoice-title p { margin: 8px 0 0 0; font-size: 1.1rem; font-weight: 600; color: var(--rr-red); }
+
+        .meta-data { display: flex; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid var(--rr-black); }
+        .bill-to strong { font-family: var(--font-serif); font-size: 1.8rem; display: block; }
+        .dates p { margin: 0 0 5px 0; color: #555; text-align: right; font-size: 0.95rem; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { text-align: left; padding: 15px 10px; border-bottom: 2px solid var(--rr-black); text-transform: uppercase; font-size: 0.85rem; }
+        td { padding: 15px 10px; border-bottom: 1px solid var(--rr-gray-light); font-size: 1.05rem; }
+        .amount-col { text-align: right; }
+
+        .total-section { display: flex; justify-content: flex-end; margin-bottom: 40px; }
+        .total-box { background: var(--rr-gray-light); padding: 20px 35px; border-left: 6px solid var(--rr-red); text-align: right; min-width: 220px; }
+        .grand-total { margin: 0; font-family: var(--font-serif); font-size: 2.5rem; font-weight: 900; }
+
+        .terms-section { margin-bottom: 30px; }
+        .terms-section h4 { margin: 0 0 10px 0; font-size: 0.85rem; font-weight: 800; color: #333; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .terms-list { margin: 0; padding-left: 18px; font-size: 0.9rem; color: #444; line-height: 1.6; }
+
+        .payment-info-area { margin-top: 10px; border-top: 1px solid #eee; padding-top: 20px; }
+        .payment-header { font-size: 0.8rem; font-weight: 800; color: #777; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .payment-method-block { margin-bottom: 20px; line-height: 1.5; font-size: 0.95rem; color: var(--rr-black); }
+        .payment-method-block h4 { margin: 0 0 4px 0; color: #333; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; }
+
+        .footer-bar { 
+            background: var(--rr-black); 
+            color: var(--rr-white); 
+            padding: 25px 70px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            font-size: 0.85rem;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: auto; 
+        }
+        .footer-bar strong { color: #FFF; }
+        .muted-text { color: var(--rr-text-muted); }
+
+        @media print {
+            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .control-panel { display: none; }
+            .preview-container { padding: 0; background: white; overflow: visible; }
+            .invoice-sheet { box-shadow: none; width: 100%; height: auto; min-height: 100%; border-top: 12px solid var(--rr-red); }
+            .footer-bar { background: black !important; color: white !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel no-print">
+        <h2>River Rank</h2>
+        <div class="form-group"><label>Currency</label>
+            <select id="in-currency" onchange="updateCurrency(this.value)">
+                <option value="$">USD ($)</option>
+                <option value="€">EUR (€)</option>
+                <option value="£">GBP (£)</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Invoice #</label><input type="text" id="in-inv-num" value="INV-2026-001" onkeyup="updateText('inv-num', this.value)"></div>
+        <div class="form-group"><label>Client</label><input type="text" id="in-client" value="Boris" onkeyup="updateText('client-name', this.value)"></div>
+        <div class="form-group"><label>Dates</label><input type="date" id="in-date" onchange="updateDate('issue-date', this.value)" style="margin-bottom:10px"><input type="date" id="in-due-date" onchange="updateDate('due-date', this.value)"></div>
+        <label>Line Items</label><div class="line-items-editor" id="items-container"></div>
+        <button class="btn-outline" onclick="addLineItem()">+ Add Item</button>
+        <label style="margin-top:25px">Payment Details</label>
+        <div class="payment-checkboxes">
+            <label class="checkbox-item"><input type="checkbox" value="usd" onchange="renderPayments()"> USD (Citibank)</label>
+            <label class="checkbox-item"><input type="checkbox" value="eur" onchange="renderPayments()"> EUR (Wise)</label>
+            <label class="checkbox-item"><input type="checkbox" value="gbp" onchange="renderPayments()"> GBP (Wise)</label>
+            <label class="checkbox-item"><input type="checkbox" value="payoneer" onchange="renderPayments()"> Payoneer</label>
+            <label class="checkbox-item"><input type="checkbox" value="wise_mail" onchange="renderPayments()"> Wise Email</label>
+        </div>
+        <button class="print-btn" onclick="window.print()">Generate PDF</button>
+    </div>
+
+    <div class="preview-container">
+        <div class="invoice-sheet">
+            <div class="sheet-body">
+                <div class="header">
+                    <div class="agency-logo"><h1 contenteditable="true">River Rank</h1><div class="agency-details"><p contenteditable="true">Scale Your E-Commerce Brand</p><p contenteditable="true">faizan@riverrankagency.com</p></div></div>
+                    <div class="invoice-title"><h2 contenteditable="true">INVOICE</h2><p># <span id="inv-num" contenteditable="true">INV-2026-001</span></p></div>
+                </div>
+                <div class="meta-data">
+                    <div class="bill-to"><h3 contenteditable="true">Billed To</h3><strong id="client-name" contenteditable="true">Boris</strong></div>
+                    <div class="dates"><p>Issued: <strong id="issue-date" contenteditable="true">...</strong></p><p>Due: <strong id="due-date" contenteditable="true">...</strong></p></div>
+                </div>
+                <table>
+                    <thead><tr><th contenteditable="true">Services</th><th class="amount-col" contenteditable="true">Amount</th></tr></thead>
+                    <tbody id="invoice-table-body"></tbody>
+                </table>
+                <div class="total-section">
+                    <div class="total-box"><h3 contenteditable="true">Total Due</h3><p class="grand-total"><span class="curr-symbol">$</span><span id="total-amount">0.00</span></p></div>
+                </div>
+                <div class="terms-section">
+                    <h4 contenteditable="true">Service Standards & Terms</h4>
+                    <ul class="terms-list" contenteditable="true">
+                        <li>Manager is responsible for providing daily progress updates via agreed communication channel.</li>
+                        <li>Detailed weekly report card covering KPIs and account health will be delivered every Monday.</li>
+                        <li>Dedicated account manager will remain available for support during standard working hours.</li>
+                    </ul>
+                </div>
+                <div id="payment-area" class="payment-info-area"></div>
+            </div>
+
+            <div class="footer-bar">
+                <span contenteditable="true">Thank you for partnering with <strong>River Rank</strong>.</span>
+                <span contenteditable="true" class="muted-text">Please remit payment to the details above.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lineItems = [{ id: 1, desc: "Amazon & TikTok Shop Setup - Deposit", amount: 300 }];
+        let currentCurrency = "$";
+
+        const paymentDetails = {
+            payoneer: `<h4>Payoneer</h4><strong>Mail:</strong> faizirana270@gmail.com`,
+            wise_mail: `<h4>Wise</h4><strong>Mail:</strong> faizirana270@gmail.com`,
+            usd: `<h4>USD Bank Details (Citibank)</h4><strong>Name:</strong> Muhammad Faizan<br><strong>Account:</strong> 70580260002231856 (CHECKING)<br><strong>ABA:</strong> 031100209 | <strong>SWIFT:</strong> CITIUS33`,
+            eur: `<h4>EUR Bank Details (Wise)</h4><strong>Name:</strong> Muhammad Faizan Haider<br><strong>IBAN:</strong> BE06 9052 5108 6022 | <strong>Swift:</strong> TRWIBEB1XXX`,
+            gbp: `<h4>GBP Bank Details (Wise)</h4><strong>Name:</strong> Muhammad Faizan Haider<br><strong>Account:</strong> 29662174 | <strong>Sort:</strong> 23-14-70 | <strong>IBAN:</strong> GB51 TRWI 2314 7029 6621 74`
+        };
+
+        function updateCurrency(val) {
+            currentCurrency = val;
+            const symbols = document.querySelectorAll('.curr-symbol');
+            symbols.forEach(s => s.innerText = val);
+            renderInvoiceTable();
+            calculateTotal();
+        }
+
+        function renderPayments() {
+            const area = document.getElementById('payment-area');
+            const checkboxes = document.querySelectorAll('.payment-checkboxes input:checked');
+            if (checkboxes.length === 0) { area.innerHTML = ''; return; }
+            let html = '<div class="payment-header">Payment Instructions</div>';
+            checkboxes.forEach(box => { html += `<div class="payment-method-block">${paymentDetails[box.value]}</div>`; });
+            area.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const t = new Date(); const d = new Date(); d.setDate(t.getDate()+7);
+            document.getElementById('in-date').valueAsDate = t; document.getElementById('in-due-date').valueAsDate = d;
+            updateDate('issue-date', t.toISOString()); updateDate('due-date', d.toISOString());
+            renderItems();
+        });
+
+        function updateText(id, v) { document.getElementById(id).innerText = v || '...'; }
+        function updateDate(id, v) { 
+            if(!v) return; 
+            const d = new Date(v + (v.includes('T') ? '' : 'T12:00:00'));
+            document.getElementById(id).innerText = d.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
+        }
+        function addLineItem() { lineItems.push({ id: Date.now(), desc: "", amount: 0 }); renderItems(); }
+        function removeLineItem(id) { lineItems = lineItems.filter(i => i.id !== id); renderItems(); }
+        function updateItem(id, f, v) {
+            const i = lineItems.find(x => x.id === id);
+            if(i) { i[f] = f === 'amount' ? (parseFloat(v) || 0) : v; renderInvoiceTable(); calculateTotal(); }
+        }
+        function renderItems() {
+            const c = document.getElementById('items-container'); c.innerHTML = '';
+            lineItems.forEach(i => {
+                const row = document.createElement('div'); row.className = 'item-row';
+                row.innerHTML = `<input type="text" placeholder="Service" value="${i.desc}" onkeyup="updateItem(${i.id},'desc',this.value)">
+                               <input type="number" placeholder="${currentCurrency}" value="${i.amount||''}" onkeyup="updateItem(${i.id},'amount',this.value)">
+                               <button class="delete-btn" onclick="removeLineItem(${i.id})">×</button>`;
+                c.appendChild(row);
+            });
+            renderInvoiceTable(); calculateTotal();
+        }
+        function renderInvoiceTable() {
+            const b = document.getElementById('invoice-table-body'); b.innerHTML = '';
+            lineItems.forEach(i => {
+                const r = document.createElement('tr');
+                r.innerHTML = `<td contenteditable="true">${i.desc||'...'}</td><td class="amount-col" contenteditable="true">${currentCurrency}${i.amount.toLocaleString('en-US',{minimumFractionDigits:2})}</td>`;
+                b.appendChild(r);
+            });
+        }
+        function calculateTotal() {
+            const t = lineItems.reduce((s, i) => s + i.amount, 0);
+            document.getElementById('total-amount').innerText = t.toLocaleString('en-US',{minimumFractionDigits:2});
+        }
+    </script>
+</body>
+</html>
